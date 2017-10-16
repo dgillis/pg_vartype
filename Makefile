@@ -1,10 +1,10 @@
-PGVARTYPEVERSION = 0.1
+PGVARTYPEVERSION = 0.4
 MODULES = pg_vartype
 MODULE_big = pg_vartype
 EXTENSION = pg_vartype
-DOCS = README
+DOCS = README.md
 OBJS = src/pg_vartype.o src/pg_vartype_datetime.o src/pg_vartype_parser.o
-DATA = sql/pg_vartype--$(PGVARTYPEVERSION).sql
+DATA = sql/pg_vartype--*.sql
 
 TESTS = $(wildcard test/sql/*.sql)
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))
