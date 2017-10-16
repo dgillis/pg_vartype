@@ -1,12 +1,12 @@
 /**
- * For now, my input and output of Dates and Timestamps leans heavily on copied code 
+ * For now, my input and output of Dates and Timestamps leans heavily on copied code
  * from postgres. Much of it is probably superflous.
  **/
 
 #include "./pg_vartype.h"
 
 
-static void
+void
 EncodeSpecialTimestamp(vt_timestamp dt, char *str)
 {
   if (TIMESTAMP_IS_NOBEGIN(dt))
@@ -17,7 +17,7 @@ EncodeSpecialTimestamp(vt_timestamp dt, char *str)
     elog(ERROR, "invalid argument for EncodeSpecialTimestamp");
 }
 
-static void
+void
 EncodeSpecialDate(vt_date dt, char *str)
 {
   if (DATE_IS_NOBEGIN(dt))
@@ -28,7 +28,7 @@ EncodeSpecialDate(vt_date dt, char *str)
     elog(ERROR, "invalid argument for EncodeSpecialDate");
 }
 
-static void
+void
 AdjustTimestampForTypmod(vt_timestamp *time, int32 typmod)
 {
 #ifdef HAVE_INT64_TIMESTAMP
@@ -74,7 +74,7 @@ AdjustTimestampForTypmod(vt_timestamp *time, int32 typmod)
           (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
           errmsg("timestamp(%d) precision must be between %d and %d",
              typmod, 0, MAX_TIMESTAMP_PRECISION)));
-    /*                                                                                                                                                            
+    /*
      * Note: this round-to-nearest code is not completely consistent about
      * rounding values that are exactly halfway between integral values.
      * On most platforms, rint() will implement round-to-nearest-even, but
@@ -161,7 +161,7 @@ vt_timestamp string_to_timestamp(char *str, int *err) {
   }
 
   AdjustTimestampForTypmod(&result, typmod);
-  
+
   return result;
 }
 
@@ -179,7 +179,7 @@ int timestamp_to_string(vt_timestamp timestamp, char *buf, int maxlen)
   if (TIMESTAMP_NOT_FINITE(timestamp))
     EncodeSpecialTimestamp(timestamp, buf);
   else if (timestamp2tm(timestamp, &tz, tm, &fsec, &tzn, NULL) == 0)
-    EncodeDateTime(tm, fsec, /*&tz - dont want any tz info in output*/NULL, &tzn, DateStyle, buf);
+    EncodeDateTime(tm, fsec, false, 0, NULL, DateStyle, buf);
   else
     ereport(ERROR,
         (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
@@ -255,7 +255,7 @@ vt_date string_to_date(char *str, int *err) {
          errmsg("date out of range: \"%s\"", str)));
 
   date = date2j(tm->tm_year, tm->tm_mon, tm->tm_mday) - POSTGRES_EPOCH_JDATE;
-  
+
   return date;
 }
 
@@ -291,7 +291,7 @@ vt_timestamp date_to_timestamp(vt_date date)
   struct pg_tm tt,
          *tm = &tt;
   int     tz;
-  
+
   if (DATE_IS_NOBEGIN(date))
     TIMESTAMP_NOBEGIN(result);
   else if (DATE_IS_NOEND(date))

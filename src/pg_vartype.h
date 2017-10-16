@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
 
 #include <postgres.h>
 #include <utils/palloc.h>
@@ -18,7 +19,10 @@
 
 typedef struct varlena vartype;
 
-typedef long long vt_int;
+
+
+
+typedef int64 vt_int;
 typedef double vt_float;
 typedef int vt_bool;
 typedef DateADT vt_date;
@@ -78,6 +82,7 @@ vt_timestamp date_to_timestamp(vt_date date);
 
 
 #define min(a,b) (a < b) ? a : b
+#define ISNANLIKE(a) 0
 
 
 Datum	vartype_in(PG_FUNCTION_ARGS);
@@ -99,6 +104,22 @@ Datum vartype_len(PG_FUNCTION_ARGS);
 Datum vartype_get_char(PG_FUNCTION_ARGS);
 Datum vartype_output_size(PG_FUNCTION_ARGS);
 
+Datum vartype_int_to_builtin(PG_FUNCTION_ARGS);
+Datum vartype_float_to_builtin(PG_FUNCTION_ARGS);
+Datum vartype_bool_to_builtin(PG_FUNCTION_ARGS);
+Datum vartype_timestamp_to_builtin(PG_FUNCTION_ARGS);
+Datum vartype_date_to_builtin(PG_FUNCTION_ARGS);
+Datum vartype_string_to_builtin(PG_FUNCTION_ARGS);
+
+Datum int64_to_vartype(PG_FUNCTION_ARGS);
+Datum double_to_vartype(PG_FUNCTION_ARGS);
+Datum bool_to_vartype(PG_FUNCTION_ARGS);
+Datum timestamptz_to_vartype(PG_FUNCTION_ARGS);
+Datum date_to_vartype(PG_FUNCTION_ARGS);
+Datum varchar_to_vartype(PG_FUNCTION_ARGS);
+Datum text_to_vartype(PG_FUNCTION_ARGS);
+
 #define PG_GETARG_VARTYPE(n) ((vartype *) PG_GETARG_VARLENA_P(n))
+#define PG_RETURN_VARTYPE(v) PG_RETURN_POINTER(v)
 
 #endif /* PG_VARTYPE_H */ 

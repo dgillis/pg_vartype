@@ -31,7 +31,7 @@ static int consume_int(char *str, char **eom) {
   }
 
   if (eom != NULL) memcpy(eom, &ptr, sizeof(char *));
-  
+
   return 1;
 }
 
@@ -58,7 +58,7 @@ static int consume_float_decimals(char *str, char **eom) {
   }
 
   if (eom != NULL) *eom = ptr;
-  
+
   return 1;
 }
 
@@ -89,13 +89,13 @@ static int consume_date(char *str, char **eom) {
   if (eom != NULL) *eom = NULL;
   int i;
   for (i = 0; i < 4; i++) {
-    if (!is_digit(*ptr)) return 0; 
+    if (!is_digit(*ptr)) return 0;
     ptr++;
   }
-  
+
   if (!is_hyphen(*ptr)) return 0;
   ptr++;
-  
+
   for (i = 0; i < 2; i++) {
     if (!is_digit(*ptr)) return 0;
     ptr++;
@@ -120,13 +120,13 @@ static int consume_time(char *str, char **eom) {
   if (eom != NULL) *eom = NULL;
   int i;
   for (i = 0; i < 2; i++) {
-    if (!is_digit(*ptr)) return 0; 
+    if (!is_digit(*ptr)) return 0;
     ptr++;
   }
-  
+
   if (!is_colon(*ptr)) return 0;
   ptr++;
-  
+
   for (i = 0; i < 2; i++) {
     if (!is_digit(*ptr)) return 0;
     ptr++;
@@ -137,7 +137,7 @@ static int consume_time(char *str, char **eom) {
 
   for (i = 0; i < 2; i++) {
     if (!is_digit(*ptr)) {
-      
+
       return 0;
     }
     ptr++;
@@ -150,7 +150,7 @@ static int consume_time(char *str, char **eom) {
   }
 
   if (eom != NULL) *eom = ptr;
-  
+
   return 1;
 }
 
@@ -160,7 +160,7 @@ static int consume_timezone(char *str, char **eom) {
 
   if (eom != NULL) *eom = NULL;
 
-  if ((is_hyphen(*ptr) || is_plus(*ptr)) 
+  if ((is_hyphen(*ptr) || is_plus(*ptr))
       && is_digit(*(ptr + 1)) && is_digit(*(ptr + 2))) {
     ptr += 3;
   }
@@ -171,10 +171,10 @@ static int consume_timezone(char *str, char **eom) {
   // check for optional minutes portion
   if (is_digit(*ptr) && is_digit(*(ptr + 1))) {
     ptr += 2;
-  }  
+  }
 
   if (eom != NULL) *eom = ptr;
-  
+
   return 1;
 }
 
@@ -202,7 +202,7 @@ static int consume_timestamp(char *str, char **eom) {
   } else {
     return 0;
   }
-  
+
   if (!consume_time(ptr, &ptr)) {
     return 0;
   }
@@ -211,7 +211,7 @@ static int consume_timestamp(char *str, char **eom) {
   if (consume_timezone(ptr, &temp)) {
     ptr = temp;
   }
-  
+
   if (eom != NULL) *eom = ptr;
 
   return 1;
@@ -241,7 +241,7 @@ static int consume_bool(char *str, char **eom) {
     ptr++;
     unmatched++;
   }
-  
+
   if (*unmatched) {
     return 0;
   }
@@ -253,7 +253,7 @@ static int consume_bool(char *str, char **eom) {
 
 
 
-   
+
 /*
 
 */

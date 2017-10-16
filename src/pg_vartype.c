@@ -18,7 +18,7 @@ const char *VT_TYPE_NAMES[] = {
 
 
 const int VARTYPE_PRECEDENCE[] = {
-  1, // VT_INT 
+  1, // VT_INT
   1, // VT_FLOAT
   2, // VT_BOOL
   3, // VT_STRING
@@ -37,7 +37,7 @@ const char *VT_FLOAT_FORMAT_STR = "%lf";
 vartype *vartype_alloc(int data_len) {
   int full_len = VARHDRSZ + sizeof(int) + sizeof(int) + data_len;
   vartype *d = palloc(full_len);
-  SET_VARSIZE(d, full_len);  
+  SET_VARSIZE(d, full_len);
   return d;
 }
 
@@ -164,7 +164,7 @@ int vartype_get_pretty_string_len(const vartype *d) {
   }
   else if (vt_type == VT_FLOAT) {
     char dummy[0];
-    len = snprintf(dummy, 0, VT_INT_FORMAT_STR, *(vt_float *) vartype_get_data_ptr(d));
+    len = snprintf(dummy, 0, VT_FLOAT_FORMAT_STR, *(vt_float *) vartype_get_data_ptr(d));
   }
   else if (vt_type == VT_STRING) {
     len = vartype_get_data_len(d) + 2; // data_len + 2 quotes
@@ -194,11 +194,11 @@ int vartype_to_pretty_string(const vartype *d, char *buf, int maxlen) {
   char *data, *result;
   int vt_type = vartype_get_type(d);
   if (vt_type == VT_INT) {
-    retval = snprintf(buf, maxlen, VT_INT_FORMAT_STR, 
+    retval = snprintf(buf, maxlen, VT_INT_FORMAT_STR,
                       *(vt_int *) vartype_get_data_ptr(d));
   }
   else if (vt_type == VT_FLOAT) {
-    retval = snprintf(buf, maxlen, VT_FLOAT_FORMAT_STR, 
+    retval = snprintf(buf, maxlen, VT_FLOAT_FORMAT_STR,
                       *(vt_float *) vartype_get_data_ptr(d));
   }
   else if (vt_type == VT_STRING) {
@@ -300,7 +300,7 @@ Datum vartype_in(PG_FUNCTION_ARGS) {
     else {
       ereport(ERROR,
               (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-               errmsg("unable to interpret date \"%s\" (error code %d)", 
+               errmsg("unable to interpret date \"%s\" (error code %d)",
                       orig_str, date_err)));
     }
   }
@@ -314,7 +314,7 @@ Datum vartype_in(PG_FUNCTION_ARGS) {
     else {
       ereport(ERROR,
               (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-               errmsg("unable to interpret timestamp \"%s\" (error code %d)", 
+               errmsg("unable to interpret timestamp \"%s\" (error code %d)",
                       orig_str, timestamp_err)));
     }
   }
@@ -352,11 +352,11 @@ Datum vartype_get_char(PG_FUNCTION_ARGS) {
   int output_size = vartype_get_pretty_string_len(d);
   char *output = palloc(output_size);
   int result = vartype_to_pretty_string(d, output, output_size);
-  
+
   //PG_FREE_IF_COPY(d, 0);
 
   if (i < 0) { i += output_size; }
-  
+
   PG_RETURN_CHAR(output[i]);
 }
 
@@ -369,6 +369,9 @@ Datum vartype_get_char(PG_FUNCTION_ARGS) {
  * The comparison operators (and supporting functions) follow
  *
  **************************************************************/
+
+
+
 
 int vt_float_cmp(vt_float a, vt_float b) {
   if (isnan(a)) {
@@ -396,15 +399,17 @@ int vt_float_cmp(vt_float a, vt_float b) {
 }
 
 
+
+
 int vt_int_cmp(vt_int a, vt_int b) {
-  if (isnan(a)) {
-    if (isnan(b)) {
+  if (ISNANLIKE(a)) {
+    if (ISNANLIKE(b)) {
       return 0;
     } else {
       return 1;
     }
   }
-  else if (isnan(b)) {
+  else if (ISNANLIKE(b)) {
     return -1;
   }
   else
@@ -426,14 +431,14 @@ int vt_bool_cmp(vt_bool a, vt_bool b) {
 }
 
 int vt_timestamp_cmp(vt_timestamp a, vt_timestamp b) {
-  if (isnan(a)) {
-    if (isnan(b)) {
+  if (ISNANLIKE(a)) {
+    if (ISNANLIKE(b)) {
       return 0;
     } else {
       return 1;
     }
   }
-  else if (isnan(b)) {
+  else if (ISNANLIKE(b)) {
     return -1;
   }
   else
@@ -451,14 +456,14 @@ int vt_timestamp_cmp(vt_timestamp a, vt_timestamp b) {
 }
 
 int vt_date_cmp(DateADT a, DateADT b) {
-  if (isnan(a)) {
-    if (isnan(b)) {
+  if (ISNANLIKE(a)) {
+    if (ISNANLIKE(b)) {
       return 0;
     } else {
       return 1;
     }
   }
-  else if (isnan(b)) {
+  else if (ISNANLIKE(b)) {
     return -1;
   }
   else
@@ -517,7 +522,7 @@ static int vartype_cmp_internal(vartype *a, vartype *b) {
       return vt_timestamp_cmp(*(vt_timestamp *) a_data, *(vt_timestamp *) b_data);
     } else {
       // b_type == VT_DATE
-      return vt_timestamp_cmp(*(vt_timestamp *) a_data, 
+      return vt_timestamp_cmp(*(vt_timestamp *) a_data,
                              date_to_timestamp(*(vt_date *) b_data));
     }
   }
@@ -531,13 +536,14 @@ static int vartype_cmp_internal(vartype *a, vartype *b) {
     }
   }
   else if (a_type == VT_STRING) {
-    return varstr_cmp(a_data, vartype_get_data_len(a), 
+    return varstr_cmp(a_data, vartype_get_data_len(a),
                       b_data, vartype_get_data_len(b), VT_STRING_COLLATION);
-  } 
+  }
   ereport(ERROR,
       (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
        errmsg("Unknown error occurred comparing VARTYPE data (vartype_types = %d and %d)",
               a_type, b_type)));
+  return 0;
 }
 
 
@@ -630,7 +636,7 @@ Datum vartype_type(PG_FUNCTION_ARGS) {
 
 /*
 This function may uneccessarily require a call
-to palloc. I'm currently unsure if returning the 
+to palloc. I'm currently unsure if returning the
 constant (the element from the VT_TYPE_NAMES array)
 is ok (does postgres later attempt to free the
 memory associated with that?).
@@ -653,4 +659,139 @@ Datum vartype_len(PG_FUNCTION_ARGS) {
   int len = vartype_get_data_len(a);
   PG_FREE_IF_COPY(a, 0);
 	PG_RETURN_INT32(len);
+}
+
+
+/* type casts */
+
+PG_FUNCTION_INFO_V1(vartype_int_to_builtin);
+Datum vartype_int_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+
+  if (vt_type == VT_INT) {
+    PG_RETURN_INT64(*(int64 *) vartype_get_data_ptr(vt));
+  } else if (vt_type == VT_FLOAT) {
+    PG_RETURN_INT64((int64) (*(vt_float *) vartype_get_data_ptr(vt)));
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(vartype_float_to_builtin);
+Datum vartype_float_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+
+  if (vt_type == VT_INT) {
+    PG_RETURN_FLOAT8((double) *(vt_int *) vartype_get_data_ptr(vt));
+  } else if (vt_type == VT_FLOAT) {
+    PG_RETURN_FLOAT8(*(double *) vartype_get_data_ptr(vt));
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(vartype_bool_to_builtin);
+Datum vartype_bool_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+
+  if (vt_type == VT_BOOL) {
+    PG_RETURN_BOOL(*(vt_int *) vartype_get_data_ptr(vt));
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(vartype_timestamp_to_builtin);
+Datum vartype_timestamp_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+
+  if (vt_type == VT_TIMESTAMP) {
+    PG_RETURN_TIMESTAMPTZ(*(TimestampTz *) vartype_get_data_ptr(vt));
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(vartype_date_to_builtin);
+Datum vartype_date_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+
+  if (vt_type == VT_DATE) {
+    PG_RETURN_DATEADT(*(DateADT *) vartype_get_data_ptr(vt));
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(vartype_string_to_builtin);
+Datum vartype_string_to_builtin(PG_FUNCTION_ARGS) {
+  vartype *vt = PG_GETARG_VARTYPE(0);
+  int vt_type = vartype_get_type(vt);
+  text *result = NULL;
+  int len;
+
+  if (vt_type == VT_STRING) {
+    len = vartype_get_data_len(vt) + VARHDRSZ;
+    result = (text *) palloc(len);
+    SET_VARSIZE(result, len);
+    memmove(VARDATA(result), vartype_get_data_ptr(vt), len - VARHDRSZ);
+    PG_RETURN_TEXT_P(result);
+  } else {
+    PG_RETURN_NULL();
+  }
+}
+
+
+PG_FUNCTION_INFO_V1(int64_to_vartype);
+Datum int64_to_vartype(PG_FUNCTION_ARGS) {
+  vt_int x = PG_GETARG_INT64(0);
+  vartype *v = vartype_init_int(x);
+  PG_RETURN_VARTYPE(v);
+}
+
+PG_FUNCTION_INFO_V1(double_to_vartype);
+Datum double_to_vartype(PG_FUNCTION_ARGS) {
+  double x = PG_GETARG_FLOAT8(0);
+  vartype *v = vartype_init_float(x);
+  PG_RETURN_VARTYPE(v);
+}
+
+PG_FUNCTION_INFO_V1(bool_to_vartype);
+Datum bool_to_vartype(PG_FUNCTION_ARGS) {
+  vt_bool x = (vt_bool) PG_GETARG_BOOL(0);
+  vartype *v = vartype_init_bool(x);
+  PG_RETURN_VARTYPE(v);
+}
+
+PG_FUNCTION_INFO_V1(date_to_vartype);
+Datum date_to_vartype(PG_FUNCTION_ARGS) {
+  vt_date x = (vt_date) PG_GETARG_DATEADT(0);
+  vartype *v = vartype_init_date(x);
+  PG_RETURN_VARTYPE(v);
+}
+
+PG_FUNCTION_INFO_V1(timestamptz_to_vartype);
+Datum timestamptz_to_vartype(PG_FUNCTION_ARGS) {
+  vt_timestamp x = (vt_timestamp) PG_GETARG_TIMESTAMPTZ(0);
+  vartype *v= vartype_init_timestamp(x);
+  PG_RETURN_VARTYPE(v);
+}
+
+PG_FUNCTION_INFO_V1(varchar_to_vartype);
+Datum varchar_to_vartype(PG_FUNCTION_ARGS) {
+  VarChar *t = PG_GETARG_VARCHAR_P(0);
+  int len = VARSIZE(t) - VARHDRSZ;
+  char *str = VARDATA(t);
+  vartype *v = vartype_init_string(str, len);
+  PG_RETURN_VARTYPE(v);
 }
